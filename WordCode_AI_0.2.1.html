@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WordCode AI 0.2.1</title>
+<style>
+:root{--bg:#070a0f;--panel:#0f151e;--panel2:#141c27;--line:#263342;--text:#edf4ff;--muted:#8493a6;--accent:#65a8ff;--accent2:#9a7cff;--good:#69e09b;--danger:#ff6d7d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#18253a 0,#070a0f 38%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
+main{max-width:1100px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{display:flex;align-items:center;gap:12px}.logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:900;box-shadow:0 0 35px #65a8ff33}.version{font-size:12px;color:#b7c5d7;background:#192331;padding:5px 8px;border-radius:8px}
+h1{font-size:25px;margin:0}.muted{color:var(--muted);font-size:13px}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.card{background:linear-gradient(180deg,#111923,#0d131b);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 12px 40px #0004}
+h2{font-size:16px;margin:0 0 12px}.label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+input,textarea{width:100%;background:#080d13;color:var(--text);border:1px solid #2d3a49;border-radius:12px;padding:12px;font:inherit;outline:none}input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #65a8ff16}
+textarea{resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.55}
+button{border:1px solid #344355;background:#1a2533;color:#fff;padding:10px 13px;border-radius:11px;font:inherit;font-weight:650;cursor:pointer;transition:.15s}button:hover{transform:translateY(-1px);border-color:#60758f}button.primary{background:linear-gradient(135deg,#287ee7,#7659dc);border:0;box-shadow:0 7px 24px #4d7cff2b}.row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.aihead{display:flex;align-items:center;justify-content:space-between}.dot{width:9px;height:9px;background:var(--good);border-radius:50%;display:inline-block;box-shadow:0 0 12px var(--good)}.status{display:flex;align-items:center;gap:7px;color:#9eacbc;font-size:12px}
+pre{margin:0;background:#070b10;border:1px solid #202b38;border-radius:12px;padding:12px;white-space:pre-wrap;min-height:100px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;overflow:auto}.typing{color:#9cb8d7}
+.full{grid-column:1/-1}
+#game{height:330px;border-radius:15px;background:linear-gradient(#b9dcff,#eaf5ff);position:relative;overflow:hidden;border:1px solid #5f7691;box-shadow:inset 0 0 70px #fff8}.actor{position:absolute;transition:left .2s,top .2s}.player{width:32px;height:32px;border-radius:9px;background:#286fd4;box-shadow:0 5px 12px #163d77}.enemy{width:30px;height:30px;border-radius:50%;background:#db4f5c;box-shadow:0 5px 12px #7c2530}.coin{width:20px;height:20px;border-radius:50%;background:#e5b63e;border:3px solid #a97d18}.item{padding:4px 7px;background:#4a5665;border-radius:7px;color:#fff;font-size:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.stat{background:#0a0f15;border:1px solid #202b38;padding:10px;border-radius:12px}.stat b{display:block;font-size:20px;margin-top:3px}
+.progress{height:6px;background:#202a36;border-radius:20px;overflow:hidden;margin-top:9px}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .2s}
+.toast{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#16251e;color:#9de6b8;border:1px solid #294936;font-size:13px}.toast.show{display:block}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.full{grid-column:auto}.top{align-items:flex-start}.stats{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body><main>
+<header class="top">
+<div class="brand"><div class="logo">W</div><div><h1>WordCode AI</h1><div class="muted">Natural language → software</div></div></div>
+<div class="version">AI REMAKE · 0.2.1</div>
+</header>
+
+<div class="grid" style="margin-top:14px">
+<section class="card">
+<div class="label">Describe what you want</div>
+<input id="request" value="Create a player, a zombie with 100 health, and a coin. Make the zombie follow the player.">
+<div class="row"><button class="primary" id="generate">✦ Generate with AI</button><button id="runai">Generate + Run</button><button id="example">Example</button></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+<div class="toast" id="toast"></div>
+</section>
+
+<section class="card">
+<div class="aihead"><h2>AI activity</h2><div class="status"><span class="dot"></span><span id="activity">Idle</span></div></div>
+<pre id="activitylog">System ready.
+Waiting for your instruction...</pre>
+</section>
+
+<section class="card full">
+<div class="aihead"><h2>Generated WordCode</h2><span class="muted">v0.2 language</span></div>
+<textarea id="code" rows="13">CREATE PLAYER
+SET Player.health 100
+CREATE ENEMY Zombie
+SET Zombie.health 100
+SET Zombie.speed 2
+SPAWN COIN 180 135
+ON Zombie TOUCH Player
+  DAMAGE Player 10
+SHOW "Hello from WordCode 0.2.1"</textarea>
+<div class="row"><button class="primary" id="run">▶ Run</button><button id="save">Save</button><button id="load">Load</button><button id="reset">Reset</button></div>
+</section>
+
+<section class="card full">
+<h2>Live Runtime</h2>
+<div id="game"></div>
+<div class="stats"><div class="stat">Health<b id="health">100</b></div><div class="stat">Coins<b id="coins">0</b></div><div class="stat">Enemies<b id="enemies">0</b></div></div>
+<h2 style="margin-top:14px">Console</h2><pre id="console">Runtime ready.</pre>
+</section>
+
+<section class="card full">
+<h2>How 0.2.1 works</h2>
+<pre>YOU TYPE
+   ↓
+LOCAL AI TRANSLATOR
+   ↓
+WORDCODE
+   ↓
+VALIDATOR / PARSER
+   ↓
+RUNTIME ENGINE
+   ↓
+GAME
+
+Next architecture target:
+LOCAL MODEL → WordCode
+so the translator can become a real on-device AI.</pre>
+</section>
+</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id), game=$('game'),code=$('code'),bar=$('bar'),activity=$('activity'),log=$('activitylog'),toast=$('toast'),con=$('console');
+let S={health:100,coins:0,enemies:0,objects:{}};
+
+function status(t){activity.textContent=t}
+function activityLines(lines){log.textContent=lines.join('\\n')}
+function reset(){game.innerHTML='';S={health:100,coins:0,enemies:0,objects:{}};stats()}
+function stats(){$('health').textContent=S.health;$('coins').textContent=S.coins;$('enemies').textContent=S.enemies}
+function make(name,type,x,y){let e=document.createElement('div');e.className='actor '+type;e.style.left=x+'px';e.style.top=y+'px';game.appendChild(e);S.objects[name]={name,type,el:e,x,y,health:100,speed:2};return S.objects[name]}
+function get(n){return S.objects[n]}
+
+function translate(q){
+ const t=q.toLowerCase(),o=[];
+ if(/player|hero|character/.test(t))o.push('CREATE PLAYER','SET Player.health '+((t.match(/(\\d+)\\s*(?:health|hp)/)||[])[1]||100));
+ if(/zombie|enemy|monster/.test(t)){o.push('CREATE ENEMY Zombie','SET Zombie.health '+((t.match(/(\\d+)\\s*(?:health|hp)/)||[])[1]||100),'SET Zombie.speed 2');if(/follow|chase|attack|touch/.test(t))o.push('ON Zombie TOUCH Player','  DAMAGE Player 10')}
+ if(/coin|coins|money/.test(t))o.push('SPAWN COIN 180 135');
+ if(/sword/.test(t))o.push('SPAWN ITEM Sword 220 135');
+ else if(/item|tool/.test(t))o.push('SPAWN ITEM Item 220 135');
+ if(/damage/.test(t))o.push('DAMAGE Player 10');
+ if(/heal/.test(t))o.push('HEAL Player 25');
+ if(!o.length)o.push('CREATE PLAYER','SHOW "'+q.replaceAll('"','')+'"');
+ o.push('SHOW "AI generation complete"');return o.join('\\n')
+}
+
+async function generate(runIt=false){
+ const q=$('request').value.trim(); if(!q)return;
+ status('Analyzing request…');toast.classList.remove('show');bar.style.width='12%';
+ activityLines(['> Request received','> Reading intent...']);
+ await new Promise(r=>setTimeout(r,350));
+ status('Planning WordCode…');bar.style.width='38%';activityLines(['> Request received','> Reading intent...','> Selecting WordCode commands...']);
+ await new Promise(r=>setTimeout(r,350));
+ const result=translate(q);bar.style.width='72%';status('Writing code…');
+ activityLines(['> Request received','> Reading intent...','> Selecting WordCode commands...','> Generating instructions...','\\n'+result]);
+ await new Promise(r=>setTimeout(r,300));
+ code.value=result;bar.style.width='100%';status('Complete');toast.textContent='✓ AI finished generating WordCode';toast.classList.add('show');
+ if(runIt){status('Running generated project…');run(result);await new Promise(r=>setTimeout(r,250));status('Running')}
+}
+
+function run(src){
+ reset();let L=[],E=[],lines=src.split(/\\r?\\n/);
+ for(let i=0;i<lines.length;i++){let line=lines[i].trim();if(!line||line.startsWith('//'))continue;let p=line.split(/\\s+/),c=p[0].toUpperCase();
+ try{
+  if(c==='CREATE'&&p[1]?.toUpperCase()==='PLAYER'){make('Player','player',30,130);L.push('✓ Player created')}
+  else if(c==='CREATE'&&p[1]?.toUpperCase()==='ENEMY'){let n=p[2]||'Enemy';make(n,'enemy',90+S.enemies*50,130);S.enemies++;L.push('✓ '+n+' created')}
+  else if(c==='SET'){let [n,k]=(p[1]||'').split('.'),v=p.slice(2).join(' '),x=get(n);if(!x)throw Error('Unknown object '+n);x[k]=k==='health'||k==='speed'?Number(v):v;if(n==='Player'&&k==='health')S.health=x[k];L.push('✓ Set '+n+'.'+k+' = '+v)}
+  else if(c==='SPAWN'&&p[1]?.toUpperCase()==='COIN'){let e=document.createElement('div');e.className='actor coin';e.style.left=(+p[2]||180)+'px';e.style.top=(+p[3]||135)+'px';game.appendChild(e);S.coins++;L.push('✓ Coin spawned')}
+  else if(c==='SPAWN'&&p[1]?.toUpperCase()==='ITEM'){let e=document.createElement('div');e.className='actor item';e.textContent=p[2]||'Item';e.style.left=(+p[3]||220)+'px';e.style.top=(+p[4]||135)+'px';game.appendChild(e);L.push('✓ '+(p[2]||'Item')+' spawned')}
+  else if(c==='DAMAGE'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.health-=Number(p[2]);if(p[1]==='Player')S.health=x.health;L.push('✓ '+p[1]+' took '+p[2]+' damage')}
+  else if(c==='HEAL'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.health+=Number(p[2]);if(p[1]==='Player')S.health=x.health;L.push('✓ '+p[1]+' healed '+p[2])}
+  else if(c==='GIVE'&&p[2]?.toUpperCase()==='COINS'){S.coins+=Number(p[3]);L.push('✓ '+p[3]+' coins given')}
+  else if(c==='MOVE'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.x=+p[2];x.y=+p[3];x.el.style.left=x.x+'px';x.el.style.top=x.y+'px';L.push('✓ '+p[1]+' moved')}
+  else if(c==='ON'){L.push('✓ Event registered: '+line.slice(3));if(i+1<lines.length&&lines[i+1].trim())i++}
+  else if(c==='SHOW')L.push('▸ '+line.slice(5).replace(/^"|"$/g,''));
+  else throw Error('Unknown command '+c);
+ }catch(e){E.push('Line '+(i+1)+': '+e.message)}
+ }
+stats();con.textContent=L.join('\\n')+(E.length?'\\n\\nERRORS\\n'+E.join('\\n'):'');if(!E.length)status('Running')
+}
+$('generate').onclick=()=>generate(false);$('runai').onclick=()=>generate(true);$('run').onclick=()=>run(code.value);
+$('save').onclick=()=>{localStorage.setItem('wc021',code.value);toast.textContent='✓ Project saved on this device';toast.classList.add('show')};
+$('load').onclick=()=>{let x=localStorage.getItem('wc021');if(x){code.value=x;toast.textContent='✓ Project loaded';toast.classList.add('show')}else{toast.textContent='No saved project yet';toast.classList.add('show')}};
+$('reset').onclick=()=>{code.value='CREATE PLAYER\\nSET Player.health 100\\nSHOW "Hello from WordCode 0.2.1"';status('Idle');log.textContent='System reset.\\nWaiting for your instruction...';run(code.value)};
+$('example').onclick=()=>{let a=['Make a zombie with 200 health that follows the player','Spawn a coin and a sword','Create a player with 150 health and heal them','Create an enemy and damage the player'];$('request').value=a[Math.floor(Math.random()*a.length)]};
+run(code.value);
+</script>
+</body></html>
