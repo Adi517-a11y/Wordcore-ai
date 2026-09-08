@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WordCode AI 0.2.2</title>
+<style>
+body{margin:0;background:#080c12;color:#eef4ff;font-family:system-ui,-apple-system,sans-serif}main{max-width:1000px;margin:auto;padding:18px}.card{background:#121923;border:1px solid #2a3747;border-radius:16px;padding:16px;margin:14px 0}input,textarea{width:100%;box-sizing:border-box;background:#080d13;color:#fff;border:1px solid #334255;border-radius:10px;padding:11px;font:inherit}textarea{font-family:monospace;line-height:1.5}button{background:#243247;color:white;border:1px solid #3a4a5f;border-radius:10px;padding:10px 13px;margin:6px 5px 0 0;font-weight:700}button.primary{background:linear-gradient(135deg,#287ee7,#7659dc);border:0}.row{display:flex;flex-wrap:wrap}.muted{color:#91a0b2;font-size:13px}pre{background:#070b10;border:1px solid #202b38;border-radius:10px;padding:12px;white-space:pre-wrap}.status{margin-top:9px;color:#8ee3aa}#game{height:330px;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(#b8dcff,#eff8ff);border:2px solid #637a92}.actor{position:absolute;z-index:2}.player{width:34px;height:34px;border-radius:9px;background:#2770dc;color:white;display:grid;place-items:center;font-weight:900}.enemy{width:32px;height:32px;border-radius:50%;background:#d94e5b;color:white;display:grid;place-items:center;font-weight:900}.coin{width:22px;height:22px;border-radius:50%;background:#e8bb3e;border:3px solid #a77c18}.item{padding:5px 8px;background:#566272;color:white;border-radius:7px;font-size:12px}.label{position:absolute;z-index:3;font-size:11px;font-weight:800;color:#26384b;pointer-events:none}
+</style>
+</head>
+<body><main>
+<h1>WordCode AI <span class="muted">AI REMAKE · 0.2.2</span></h1>
+<p class="muted">Natural language → WordCode → live preview</p>
+
+<div class="card">
+<b>Tell the AI what to build</b>
+<input id="request" value="Create a player, a zombie with 100 health, and a coin. Make the zombie follow the player.">
+<div class="row"><button class="primary" id="generate">✦ Generate with AI</button><button id="runai">Generate + Run</button><button id="example">Example</button></div>
+<div class="status" id="status">● AI ready</div>
+<pre id="activity">Waiting for your instruction...</pre>
+</div>
+
+<div class="card">
+<b>Generated WordCode</b>
+<textarea id="code" rows="14">CREATE PLAYER
+SET Player.health 100
+CREATE ENEMY Zombie
+SET Zombie.health 100
+SET Zombie.speed 2
+SPAWN COIN 180 145
+ON Zombie TOUCH Player
+  DAMAGE Player 10
+SHOW "Hello from WordCode"</textarea>
+<div class="row"><button class="primary" id="run">▶ Run WordCode</button><button id="save">Save</button><button id="load">Load</button></div>
+</div>
+
+<div class="card">
+<b>Live Preview</b>
+<div id="game"></div>
+<p>Health: <b id="health">100</b> · Coins: <b id="coins">0</b> · Enemies: <b id="enemies">0</b></p>
+<pre id="console">Runtime ready.</pre>
+</div>
+</main>
+
+<script>
+const $=x=>document.getElementById(x),game=$('game'),code=$('code'),activity=$('activity'),status=$('status'),consoleBox=$('console');
+let S={health:100,coins:0,enemies:0,objects:{}};
+
+function stats(){$('health').textContent=S.health;$('coins').textContent=S.coins;$('enemies').textContent=S.enemies}
+function reset(){game.innerHTML='';S={health:100,coins:0,enemies:0,objects:{}};stats()}
+function make(name,type,x,y){
+ let e=document.createElement('div');e.className='actor '+type;e.style.left=x+'px';e.style.top=y+'px';e.textContent=type==='player'?'P':type==='enemy'?'Z':'';game.appendChild(e);
+ let l=document.createElement('div');l.className='label';l.style.left=x+'px';l.style.top=(y-18)+'px';l.textContent=name;game.appendChild(l);
+ S.objects[name]={name,type,el:e,label:l,x,y,health:100,speed:2};return S.objects[name]
+}
+function get(n){return S.objects[n]}
+function translate(q){
+ let t=q.toLowerCase(),o=[];
+ if(/player|hero|character/.test(t))o.push('CREATE PLAYER','SET Player.health '+((t.match(/(\d+)\s*(?:health|hp)/)||[])[1]||100));
+ if(/zombie|enemy|monster/.test(t)){o.push('CREATE ENEMY Zombie','SET Zombie.health '+((t.match(/(\d+)\s*(?:health|hp)/)||[])[1]||100),'SET Zombie.speed 2');if(/follow|chase|attack|touch/.test(t))o.push('ON Zombie TOUCH Player','  DAMAGE Player 10')}
+ if(/coin|coins|money/.test(t))o.push('SPAWN COIN 180 145');
+ if(/sword/.test(t))o.push('SPAWN ITEM Sword 240 145');
+ if(/item|tool/.test(t)&&!/sword/.test(t))o.push('SPAWN ITEM Item 240 145');
+ if(/damage/.test(t))o.push('DAMAGE Player 10');
+ if(/heal/.test(t))o.push('HEAL Player 25');
+ if(!o.length)o.push('CREATE PLAYER','SHOW "'+q.replaceAll('"','')+'"');
+ o.push('SHOW "AI generation complete"');return o.join('\n')
+}
+async function generate(runNow){
+ let q=$('request').value.trim();if(!q)return;
+ status.textContent='● Analyzing request...';activity.textContent='> Request received';
+ await new Promise(r=>setTimeout(r,300));status.textContent='● Planning WordCode...';activity.textContent+='\\n> Understanding intent...';
+ await new Promise(r=>setTimeout(r,300));let result=translate(q);status.textContent='● Generating WordCode...';activity.textContent+='\\n> Writing commands...\\n\\n'+result;
+ await new Promise(r=>setTimeout(r,300));code.value=result;status.textContent='● Generation complete';if(runNow)run(result)
+}
+function run(src){
+ reset();let L=[],E=[],lines=src.split(/\r?\n/);
+ for(let i=0;i<lines.length;i++){let line=lines[i].trim();if(!line||line.startsWith('//'))continue;let p=line.split(/\s+/),c=p[0].toUpperCase();
+ try{
+  if(c==='CREATE'&&p[1]?.toUpperCase()==='PLAYER'){make('Player','player',40,145);L.push('✓ Player created')}
+  else if(c==='CREATE'&&p[1]?.toUpperCase()==='ENEMY'){let n=p[2]||'Enemy';make(n,'enemy',130+S.enemies*75,145);S.enemies++;L.push('✓ '+n+' created')}
+  else if(c==='SET'){let [n,k]=(p[1]||'').split('.'),v=p.slice(2).join(' '),x=get(n);if(!x)throw Error('Unknown object '+n);x[k]=(k==='health'||k==='speed')?Number(v):v;if(n==='Player'&&k==='health')S.health=x[k];L.push('✓ '+n+'.'+k+' = '+v)}
+  else if(c==='SPAWN'&&p[1]?.toUpperCase()==='COIN'){let e=document.createElement('div');e.className='actor coin';e.style.left=(+p[2]||180)+'px';e.style.top=(+p[3]||145)+'px';game.appendChild(e);S.coins++;L.push('✓ Coin spawned')}
+  else if(c==='SPAWN'&&p[1]?.toUpperCase()==='ITEM'){let e=document.createElement('div');e.className='actor item';e.textContent=p[2]||'Item';e.style.left=(+p[3]||240)+'px';e.style.top=(+p[4]||145)+'px';game.appendChild(e);L.push('✓ '+(p[2]||'Item')+' spawned')}
+  else if(c==='DAMAGE'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.health-=Number(p[2]);if(p[1]==='Player')S.health=x.health;L.push('✓ '+p[1]+' damaged')}
+  else if(c==='HEAL'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.health+=Number(p[2]);if(p[1]==='Player')S.health=x.health;L.push('✓ '+p[1]+' healed')}
+  else if(c==='MOVE'){let x=get(p[1]);if(!x)throw Error('Unknown object '+p[1]);x.x=+p[2];x.y=+p[3];x.el.style.left=x.x+'px';x.el.style.top=x.y+'px';x.label.style.left=x.x+'px';x.label.style.top=(x.y-18)+'px';L.push('✓ '+p[1]+' moved')}
+  else if(c==='GIVE'&&p[2]?.toUpperCase()==='COINS'){S.coins+=Number(p[3]);L.push('✓ Coins added')}
+  else if(c==='ON'){L.push('✓ Event registered: '+line.slice(3));if(i+1<lines.length&&lines[i+1].trim())i++}
+  else if(c==='SHOW')L.push('▸ '+line.slice(5).replace(/^"|"$/g,''));
+  else throw Error('Unknown command '+c);
+ }catch(e){E.push('Line '+(i+1)+': '+e.message)}
+ }
+ stats();consoleBox.textContent=L.join('\n')+(E.length?'\n\nERRORS\n'+E.join('\n'):'');status.textContent=E.length?'● Runtime error':'● Running successfully'
+}
+$('generate').onclick=()=>generate(false);$('runai').onclick=()=>generate(true);$('run').onclick=()=>run(code.value);
+$('save').onclick=()=>{localStorage.setItem('wordcode022',code.value);status.textContent='● Saved locally'};
+$('load').onclick=()=>{let x=localStorage.getItem('wordcode022');if(x){code.value=x;run(x);status.textContent='● Loaded'}};
+$('example').onclick=()=>{$('request').value='Create a zombie with 200 health and a coin'};
+run(code.value);
+</script></body></html>
